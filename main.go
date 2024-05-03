@@ -4,6 +4,7 @@ import (
 	"fmt"
 	imageprocessing "goroutines_pipeline/image_processing"
 	"image"
+	"os"
 	"strings"
 )
 
@@ -13,20 +14,46 @@ type Job struct {
 	OutPath   string
 }
 
-func loadImage(paths []string) <-chan Job {
+func loadImage(paths []string) (<-chan Job, <-chan error) {
 	out := make(chan Job)
+	errc := make(chan error, 1)
 	go func() {
-		// For each input path create a job and add it to
-		// the out channel
+		defer close(out)
+		defer close(errc)
 		for _, p := range paths {
-			job := Job{InputPath: p,
-				OutPath: strings.Replace(p, "images/", "images/output/", 1)}
-			job.Image = imageprocessing.ReadImage(p)
+			// Check if the input file exists and is readable
+			if _, err := os.Stat(p); os.IsNotExist(err) {
+				errc <- fmt.Errorf("input file %s does not exist", p)
+				return
+			} else if err != nil {
+				errc <- fmt.Errorf("error reading input file %s: %v", p, err)
+				return
+			}
+
+			// Prepare the output path
+			outPath := strings.Replace(p, "images/", "images/output/", 1)
+
+			// Check if the output path is writable
+			outFile, err := os.OpenFile(outPath, os.O_WRONLY|os.O_CREATE, 0666)
+			if err != nil {
+				errc <- fmt.Errorf("error opening output file %s for writing: %v", outPath, err)
+				return
+			}
+			outFile.Close()
+
+			job := Job{InputPath: p, OutPath: outPath}
+
+			// Load the image
+			job.Image, err = imageprocessing.ReadImage(p)
+			if err != nil {
+				errc <- fmt.Errorf("error loading image from %s: %v", p, err)
+				return
+			}
+
 			out <- job
 		}
-		close(out)
 	}()
-	return out
+	return out, errc
 }
 
 func resize(input <-chan Job) <-chan Job {
@@ -75,7 +102,7 @@ func main() {
 		"images/image4.jpeg",
 	}
 
-	channel1 := loadImage(imagePaths)
+	channel1, _ := loadImage(imagePaths)
 	channel2 := resize(channel1)
 	channel3 := convertToGrayscale(channel2)
 	writeResults := saveImage(channel3)
