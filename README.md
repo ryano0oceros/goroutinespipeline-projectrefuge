@@ -96,3 +96,5 @@ Success!
 Success!
 Success!
 ```
+
+The converted images are successfully saved in the [`output`](images/output) directory.
