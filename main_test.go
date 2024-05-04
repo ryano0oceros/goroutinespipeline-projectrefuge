@@ -152,3 +152,24 @@ func imagesAreEqual(img1, img2 image.Image) bool {
 	}
 	return true
 }
+
+func BenchmarkPipeline(b *testing.B) {
+	imagePaths := []string{"images/image1.jpeg",
+		"images/image2.jpeg",
+		"images/image3.jpeg",
+		"images/image4.jpeg",
+	}
+
+	for i := 0; i < b.N; i++ {
+		channel1, _ := loadImage(imagePaths)
+		channel2 := resize(channel1)
+		channel3 := convertToGrayscale(channel2)
+		writeResults := saveImage(channel3)
+
+		for success := range writeResults {
+			if !success {
+				b.Fatal("Failed!")
+			}
+		}
+	}
+}
