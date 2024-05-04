@@ -85,3 +85,14 @@ ok      goroutines_pipeline     1.838s
 The `README.md` file includes information on the program's functionality, how to replace the input images, how to run the unit tests, and how to run the benchmarking tests.
 
 Full functionality can be found at [this commit](https://github.com/ryano0oceros/goroutinespipeline-projectrefuge/commit/13bf5a77c7a7bf627f670d24e24d0b5b1524cac1)
+
+### Usage
+
+```bash
+go run main.go
+
+Success!
+Success!
+Success!
+Success!
+```
